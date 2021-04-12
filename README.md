@@ -8,3 +8,6 @@ Speaking without thought; talking like an un-educated person on a subject they k
 * Lexico
 
 To utter indistinctly and incoherently; to babble.
+
+
+Anyway, this repository is intended for housing code snippets that I write as I dive deeper in the Blockchain technology.
