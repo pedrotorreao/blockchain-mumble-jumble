@@ -10,6 +10,12 @@ class Block {
     this.nonce = 0;
   }
 
+  /**
+   * This method uses some of the Block properties as input
+   * to the SHA256 hashing algorithm in order to calculate
+   * the hash value for the block.
+   * @returns {string} The hash value calculated.
+   */
   calcHash() {
     return SHA256(
       this.idx +
@@ -20,11 +26,19 @@ class Block {
     ).toString();
   }
 
+  /**
+   * This method implements a simple proof of work requirement by
+   * adding the need to perform a "computer intensive" calculation
+   * before adding a new block to the blockchain in order to improve
+   * security by avoiding the spamming of the blockchain.
+   * @param {number} difficulty Intensity of the computer processing
+   * power needed to mine a new block.
+   */
   mineBlock(difficulty) {
     while (
       this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("f")
     ) {
-      this.nonce++;
+      this.nonce++; // makes sure that the hash changes every iteration.
       this.hash = this.calcHash();
     }
 
