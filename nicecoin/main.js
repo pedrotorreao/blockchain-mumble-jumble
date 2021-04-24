@@ -7,18 +7,35 @@ class Block {
     this.data = data;
     this.prevHash = prevHash;
     this.hash = this.calcHash();
+    this.nonce = 0;
   }
 
   calcHash() {
     return SHA256(
-      this.idx + this.prevHash + this.timeStamp + JSON.stringify(this.data)
+      this.idx +
+        this.prevHash +
+        this.timeStamp +
+        this.nonce +
+        JSON.stringify(this.data)
     ).toString();
+  }
+
+  mineBlock(difficulty) {
+    while (
+      this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("f")
+    ) {
+      this.nonce++;
+      this.hash = this.calcHash();
+    }
+
+    console.log("Block mined: " + this.hash + "\n");
   }
 }
 
 class Blockchain {
   constructor() {
     this.chain = [this.genesisCreate()];
+    this.difficulty = 5;
   }
 
   /**
@@ -43,7 +60,7 @@ class Blockchain {
    */
   addBlock(newBlock) {
     newBlock.prevHash = this.getLatestBlock().hash;
-    newBlock.hash = newBlock.calcHash();
+    newBlock.mineBlock(this.difficulty);
 
     this.chain.push(newBlock);
   }
@@ -70,11 +87,16 @@ class Blockchain {
 
 let niceCoin = new Blockchain();
 
+console.log("Mining block ...");
 niceCoin.addBlock(new Block(1, "04/19/2021", { balance: 40 }));
+
+console.log("Mining block ...");
 niceCoin.addBlock(new Block(2, "04/19/2021", { balance: 5 }));
+
+console.log("Mining block ...");
 niceCoin.addBlock(new Block(3, "04/19/2021", { balance: 32 }));
 
-console.log(JSON.stringify(niceCoin, null, 4));
+console.log("NiceCoin - Blockchain: ", JSON.stringify(niceCoin, null, 4));
 
 console.log("Blockchain is VALID: " + niceCoin.isChainValid()); // Expected output: TRUE
 
@@ -86,7 +108,7 @@ niceCoin.chain[1].hash = niceCoin.chain[1].calcHash(); // Try to fix the broken 
 
 console.log("Blockchain is VALID: " + niceCoin.isChainValid()); // Expected output: FALSE. Hash value might be right, but the next block will still have the link to previous block broken.
 
-console.log(JSON.stringify(niceCoin, null, 4));
+console.log("NiceCoin - Blockchain: ", JSON.stringify(niceCoin, null, 4));
 
 /* 
 Next steps:
