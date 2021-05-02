@@ -1,10 +1,16 @@
 const SHA256 = require("crypto-js/sha256");
 
+class Transaction {
+  constructor(fromAddr, toAddr, amount) {
+    this.fromAddr = fromAddr;
+    this.toAddr = toAddr;
+    this.amount = amount;
+  }
+}
 class Block {
-  constructor(idx, timeStamp, data, prevHash = "") {
-    this.idx = idx;
+  constructor(timeStamp, transactions, prevHash = "") {
     this.timeStamp = timeStamp;
-    this.data = data;
+    this.transactions = transactions;
     this.prevHash = prevHash;
     this.hash = this.calcHash();
     this.nonce = 0;
@@ -18,11 +24,10 @@ class Block {
    */
   calcHash() {
     return SHA256(
-      this.idx +
-        this.prevHash +
+      this.prevHash +
         this.timeStamp +
         this.nonce +
-        JSON.stringify(this.data)
+        JSON.stringify(this.transactions)
     ).toString();
   }
 
@@ -49,7 +54,9 @@ class Block {
 class Blockchain {
   constructor() {
     this.chain = [this.genesisCreate()];
-    this.difficulty = 5;
+    this.difficulty = 3;
+    this.pendingTransactions = [];
+    this.miningReward = 50;
   }
 
   /**
@@ -57,7 +64,7 @@ class Blockchain {
    * @returns {Object} First block in the chain. No prevHash.
    */
   genesisCreate() {
-    return new Block(0, "04,19,2021", "Genesis", "0");
+    return new Block(Date.now(), "Genesis", "0");
   }
 
   /**
@@ -70,13 +77,51 @@ class Blockchain {
 
   /**
    * This method adds a new block to the chain.
-   * @param {Object} newBlock Object representative of a single block.
+   * @param {String} miningRewardAddr address to where the mining reward
+   * is sent after a new block is mined and added to the blockchain.
    */
-  addBlock(newBlock) {
+  minePendingTransactions(miningRewardAddr) {
+    let newBlock = new Block(Date.now(), this.pendingTransactions);
     newBlock.prevHash = this.getLatestBlock().hash;
+
     newBlock.mineBlock(this.difficulty);
 
+    console.log("Block successfully mined!");
     this.chain.push(newBlock);
+
+    this.pendingTransactions = [
+      new Transaction(null, miningRewardAddr, this.miningReward)
+    ];
+  }
+
+  /**
+   * Add a new transaction to the pending transactions list.
+   * @param {Object} transaction transaction data to be processed.
+   */
+  createTransaction(transaction) {
+    this.pendingTransactions.push(transaction);
+  }
+
+  /**
+   * Method which calculates the balance of a specified address based on its past transactions.
+   * @param {String} addr address for which the balance will be calculated.
+   * @returns the calculated balance
+   */
+  getBalanceOfAddress(addr) {
+    let balance = 0;
+
+    for (const block of this.chain) {
+      for (const transac of block.transactions) {
+        if (transac.fromAddr === addr) {
+          balance -= transac.amount;
+        }
+        if (transac.toAddr === addr) {
+          balance += transac.amount;
+        }
+      }
+    }
+
+    return balance;
   }
 
   /**
@@ -101,28 +146,34 @@ class Blockchain {
 
 let niceCoin = new Blockchain();
 
-console.log("Mining block ...");
-niceCoin.addBlock(new Block(1, "04/19/2021", { balance: 40 }));
+niceCoin.createTransaction(
+  new Transaction("pubKeyWallet1", "pubKeyWallet2", 100)
+);
+niceCoin.createTransaction(
+  new Transaction("pubKeyWallet2", "pubKeyWallet3", 60)
+);
+niceCoin.createTransaction(
+  new Transaction("pubKeyWallet3", "pubKeyWallet1", 10)
+);
 
-console.log("Mining block ...");
-niceCoin.addBlock(new Block(2, "04/19/2021", { balance: 5 }));
+console.log("\n Starting the miner ...");
+niceCoin.minePendingTransactions("minerONEAddr");
 
-console.log("Mining block ...");
-niceCoin.addBlock(new Block(3, "04/19/2021", { balance: 32 }));
+console.log(
+  "\n Balance of minerONE is ",
+  niceCoin.getBalanceOfAddress("minerONEAddr")
+);
+
+console.log("\n Starting the miner ...");
+niceCoin.minePendingTransactions("minerONEAddr");
+
+console.log(
+  "\n Balance of minerONE is ",
+  niceCoin.getBalanceOfAddress("minerONEAddr")
+);
 
 console.log("NiceCoin - Blockchain: ", JSON.stringify(niceCoin, null, 4));
-
-console.log("Blockchain is VALID: " + niceCoin.isChainValid()); // Expected output: TRUE
-
-niceCoin.chain[1].data = { amount: 50 }; //Alter the data property
-
-console.log("Blockchain is VALID: " + niceCoin.isChainValid()); // Expected output: FALSE
-
-niceCoin.chain[1].hash = niceCoin.chain[1].calcHash(); // Try to fix the broken chain by recalculating the hash value
-
-console.log("Blockchain is VALID: " + niceCoin.isChainValid()); // Expected output: FALSE. Hash value might be right, but the next block will still have the link to previous block broken.
-
-console.log("NiceCoin - Blockchain: ", JSON.stringify(niceCoin, null, 4));
+console.log("Blockchain is VALID: " + niceCoin.isChainValid());
 
 /* 
 Next steps:
