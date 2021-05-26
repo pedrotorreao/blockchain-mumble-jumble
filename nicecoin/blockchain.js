@@ -10,38 +10,52 @@ class Transaction {
     this.amount = amount;
   }
 
+  /**
+   * This method uses some of the Transaction properties as input
+   * to the SHA256 hashing algorithm in order to calculate
+   * a hash value for the transaction.
+   * @returns {string} The hash value calculated.
+   */
   calcHash() {
-    // hash the transaction
     return SHA256(this.fromAddr + this.toAddr + this.amount).toString();
   }
 
+  /**
+   * Method for signing transactions. It verifies the validity of the
+   * signing key to be used and, if it belongs to the wallet trying
+   * to sign the transation, it is a valid transaction and that gets
+   * signed.
+   * @param {string} signingKey wallet key for signing transactions
+   */
   signTransaction(signingKey) {
-    // sign the transaction
+    // verifies the validity of the signing key:
     if (signingKey.getPublic("hex") !== this.fromAddr) {
       throw new Error("You cannot sign transactions for other wallets!");
     }
-
+    // calucate the hash for the current transaction:
     const hashTx = this.calcHash();
+    // sign transaction:
     const signTx = signingKey.sign(hashTx, "base64");
 
     this.signature = signTx.toDER("hex");
   }
 
   isValid() {
+    // "null" indicates that the transaction is a mining reward:
     if (this.fromAddr === null) {
-      // the transaction is a mining reward
       return true;
     }
-
+    // "verifies if the transaction is signed:
     if (!this.signature || this.signature.length === 0) {
       throw new Error("There is no signature in this transaction");
     }
-
+    // get the pub key:
     const publicKey = ec.keyFromPublic(this.fromAddr, "hex");
-
+    // verifies that keys match:
     return publicKey.verify(this.calcHash(), this.signature);
   }
 }
+
 class Block {
   constructor(timeStamp, transactions, prevHash = "") {
     this.timeStamp = timeStamp;
@@ -85,6 +99,10 @@ class Block {
     console.log("Block mined: " + this.hash + "\n");
   }
 
+  /**
+   * This method verifies if all the transaction on the block are valid.
+   * @returns boolean
+   */
   hasValidTransactions() {
     for (const tx of this.transactions) {
       if (!tx.isValid()) {
